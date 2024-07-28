@@ -1,0 +1,16 @@
+service: mohan-sivi-blog-apollo-graphql
+provider:
+  name: aws
+  runtime: nodejs20.x
+functions:
+  graphql:
+    handler: index.graphqlHandler
+    events:
+    - http:
+        path: /
+        method: post
+        cors: true
+    - http:
+        path: /
+        method: get
+        cors: true
