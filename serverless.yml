@@ -5,7 +5,7 @@ provider:
   runtime: nodejs14.x
   region: us-east-1
   environment:
-    MONGO_URI: 'mongodb+srv://username:password@cluster.mongodb.net/dbname'
+    MONGO_URI: 'process.env.MONGO_URI'
 
 functions:
   graphql:
