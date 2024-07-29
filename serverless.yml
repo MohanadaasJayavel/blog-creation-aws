@@ -1,0 +1,126 @@
+service: graphql-appsync-lambda
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  region: us-east-1
+  environment:
+    MONGO_URI: 'mongodb+srv://username:password@cluster.mongodb.net/dbname'
+
+functions:
+  graphql:
+    handler: index.graphqlHandler
+    memorySize: 512
+    timeout: 10
+    environment:
+      MONGO_URI: ${self:provider.environment.MONGO_URI}
+
+resources:
+  Resources:
+    GraphQLApi:
+      Type: AWS::AppSync::GraphQLApi
+      Properties:
+        Name: GraphQLAPI
+        AuthenticationType: API_KEY
+        XrayEnabled: true
+
+    GraphQLSchema:
+      Type: AWS::AppSync::GraphQLSchema
+      Properties:
+        ApiId: !GetAtt GraphQLApi.ApiId
+        DefinitionS3Location: s3://your-bucket-name/path-to-schema.graphql
+
+    GraphQLDataSource:
+      Type: AWS::AppSync::DataSource
+      Properties:
+        ApiId: !GetAtt GraphQLApi.ApiId
+        Name: GraphQLLambdaDataSource
+        Type: AWS_LAMBDA
+        LambdaConfig:
+          LambdaFunctionArn: !GetAtt GraphqlLambdaFunction.Arn
+        ServiceRoleArn: !GetAtt AppSyncLambdaServiceRole.Arn
+
+    AppSyncLambdaServiceRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: appsync.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: AppSyncLambdaPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - lambda:InvokeFunction
+                  Resource: '*'
+
+    GraphqlLambdaFunction:
+      Type: AWS::Lambda::Function
+      Properties:
+        FunctionName: graphqlLambdaFunction
+        Handler: index.graphqlHandler
+        Role: !GetAtt AppSyncLambdaServiceRole.Arn
+        Code:
+          S3Bucket: your-bucket-name
+          S3Key: path-to-your-lambda-code.zip
+        Runtime: nodejs14.x
+        Environment:
+          Variables:
+            MONGO_URI: ${self:provider.environment.MONGO_URI}
+        MemorySize: 512
+        Timeout: 10
+
+    GraphQLApiKey:
+      Type: AWS::AppSync::ApiKey
+      Properties:
+        ApiId: !GetAtt GraphQLApi.ApiId
+        Expires: 1633210000
+
+plugins:
+  - serverless-appsync-plugin
+  - serverless-offline
+
+custom:
+  appsync:
+    name: AppSyncAPI
+    authenticationType: API_KEY
+    schema: schema.graphql
+    dataSources:
+      - type: AWS_LAMBDA
+        name: LambdaDataSource
+        description: "Lambda DataSource"
+        config:
+          functionName: graphql
+    mappingTemplates:
+      - dataSource: LambdaDataSource
+        type: Query
+        field: getablog
+        request: "request.vtl"
+        response: "response.vtl"
+      - dataSource: LambdaDataSource
+        type: Query
+        field: getallblogs
+        request: "request.vtl"
+        response: "response.vtl"
+      - dataSource: LambdaDataSource
+        type: Mutation
+        field: createblog
+        request: "request.vtl"
+        response: "response.vtl"
+      - dataSource: LambdaDataSource
+        type: Mutation
+        field: updateblog
+        request: "request.vtl"
+        response: "response.vtl"
+      - dataSource: LambdaDataSource
+        type: Mutation
+        field: deleteblog
+        request: "request.vtl"
+        response: "response.vtl"
+

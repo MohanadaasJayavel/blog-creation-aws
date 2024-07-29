@@ -1,0 +1,17 @@
+type Blog {
+    id: ID!
+    author: String!
+    title: String!
+    content: String!
+  }
+
+  type Query {
+    getablog(id: ID!): Blog
+    getallblogs: [Blog]
+  }
+
+  type Mutation {
+    createblog(author: String!, title: String!, content: String!): Blog
+    updateblog(id: ID!, author: String, title: String, content: String): Blog
+    deleteblog(id: ID!): String
+  }
